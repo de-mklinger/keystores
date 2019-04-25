@@ -226,11 +226,19 @@ public class KeyStores {
 				throw new FileNotFoundException("Classpath resource not found: " + classpathLocation);
 			}
 			return in;
-		} else if (location.startsWith("/") || location.startsWith("./")) {
+		} else if (isUnixPath(location) || isWindowsPath(location)) {
 			return new FileInputStream(location);
 		} else {
 			return URI.create(location).toURL().openStream();
 		}
+	}
+
+	private static boolean isUnixPath(final String location) {
+		return location.startsWith("/") || location.startsWith("./");
+	}
+
+	private static boolean isWindowsPath(final String location) {
+		return location.startsWith("\\") || location.startsWith(".\\") || location.matches("[a-zA-Z]:\\\\.*");
 	}
 
 	/**
