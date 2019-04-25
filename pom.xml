@@ -10,7 +10,7 @@
 
 	<groupId>de.mklinger.micro</groupId>
 	<artifactId>keystores</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1</version>
 	<packaging>bundle</packaging>
 
 	<name>${project.artifactId}</name>
@@ -43,7 +43,7 @@
 		<connection>scm:git:git@github.com:de-mklinger/keystores.git</connection>
 		<developerConnection>scm:git:git@github.com:de-mklinger/keystores.git</developerConnection>
 		<url>https://github.com/de-mklinger/keystores</url>
-		<tag>HEAD</tag>
+		<tag>keystores-1.1</tag>
 	</scm>
 
 	<dependencies>
