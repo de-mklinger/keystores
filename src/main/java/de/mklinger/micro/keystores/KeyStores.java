@@ -238,7 +238,7 @@ public class KeyStores {
 	}
 
 	private static boolean isWindowsPath(final String location) {
-		return location.startsWith("\\") || location.startsWith(".\\") || location.matches("[a-zA-Z]:\\\\.*");
+		return location.startsWith("\\") || location.startsWith(".\\") || location.matches("[a-zA-Z]:\\\\.*") || location.matches("[a-zA-Z]:/.*");
 	}
 
 	/**
