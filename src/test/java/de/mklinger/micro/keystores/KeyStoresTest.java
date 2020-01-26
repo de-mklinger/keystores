@@ -155,4 +155,15 @@ public class KeyStoresTest {
 		assertThat(cert1, instanceOf(X509Certificate.class));
 		assertThat(cert1.getSubjectX500Principal().getName(), equalTo("O=mklinger GmbH,CN=testca"));
 	}
+
+	@Test
+	public void testIsWindowsPath() {
+		assertThat(KeyStores.isWindowsPath("\\bla"), is(true));
+		assertThat(KeyStores.isWindowsPath("\\"), is(true));
+		assertThat(KeyStores.isWindowsPath("C:\\bla"), is(true));
+		assertThat(KeyStores.isWindowsPath("C:\\"), is(true));
+		assertThat(KeyStores.isWindowsPath("C:/bla"), is(true));
+		assertThat(KeyStores.isWindowsPath("C:/"), is(true));
+		assertThat(KeyStores.isWindowsPath("/hello/world"), is(false));
+	}
 }
