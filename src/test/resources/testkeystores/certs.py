@@ -9,7 +9,7 @@ def main():
     ca_cert_file, ca_key_file, ca_pkcs12_cert_file = generate_ca("testca", days=3650)
     generate_server("test-server", ca_cert_file, ca_key_file, days=3650)
 
-def generate_ca(cn, days=30):
+def generate_ca(cn, days=90):
     key = genrsa_pkcs8()
     key_file = "ca-key.pem"
     write_to_file(key_file, key)
@@ -99,7 +99,7 @@ def generate_csr(key_file, cn, o=None):
         '-config', config_file
     ])
 
-def generate_ca_cert(csr, sign_key_file, days=30):
+def generate_ca_cert(csr, sign_key_file, days=90):
     ext= \
         "subjectKeyIdentifier = hash\n" \
         "authorityKeyIdentifier = keyid\n" \
