@@ -178,24 +178,19 @@ public class KeyStores {
 		final CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
 		CertificateException error = null;
 
-		while (true) {
-			final Certificate certificate;
+		Certificate certificate;
+		do {
 			try {
 				certificate = certFactory.generateCertificate(actualIn);
-				if (certificate == null) {
-					break;
+				if (certificate != null) {
+					certificates.add(certificate);
 				}
-				certificates.add(certificate);
 			} catch (final CertificateException e) {
-				if (error == null) {
-					error = e;
-				} else {
-					error.addSuppressed(e);
-				}
-				// Ignore. Happens when no more certificates are available in the stream
-				break;
+				// Ignore for now. Happens when no more certificates are available in the stream
+				certificate = null;
+				error = e;
 			}
-		}
+		} while (certificate != null);
 
 		if (certificates.isEmpty()) {
 			throw new CertificateException("Unable to load certificates from stream", error);
