@@ -31,7 +31,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
@@ -254,24 +253,43 @@ public class KeyStores {
 	 *        ca certificate last. E.g.: server certificate, ca intermediate
 	 *        certificate, ca root certificate
 	 */
-	public static void storeAsPkcs12(final OutputStream out, @Nullable final String password, final PrivateKey privateKey, final Certificate... certificateChain) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-		final KeyStore store = KeyStore.getInstance("PKCS12");
-		store.load(null, null);
+	public static void storeAsPkcs12(final OutputStream out, @Nullable final String password, final PrivateKey privateKey, final Certificate... certificateChain) {
+		try {
 
-		final char[] actualPassword = toPasswordCharArray(password);
+			final KeyStore store = KeyStore.getInstance("PKCS12");
+			store.load(null, null);
 
-		store.setKeyEntry("key", privateKey, actualPassword, certificateChain);
+			final char[] actualPassword = toPasswordCharArray(password);
 
-		store.store(out, actualPassword);
+			store.setKeyEntry("key", privateKey, actualPassword, certificateChain);
+
+			store.store(out, actualPassword);
+
+		} catch (final IOException e) {
+			throw new UncheckedIOException("Error storing PKCS12 keystore", e);
+		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
+			throw new UncheckedSecurityException("Error storing PKCS12 keystore", e);
+		}
 	}
 
-	public static void storeAsPem(final OutputStream out, final Certificate... certificates) throws IOException, CertificateEncodingException {
-		final Encoder encoder = Base64.getMimeEncoder(65, LF);
+	/**
+	 * Store certificates as PEM.
+	 */
+	public static void storeAsPem(final OutputStream out, final Certificate... certificates) {
+		try {
 
-		for (final Certificate certificate : certificates) {
-			out.write(BEGIN_CERT);
-			out.write(encoder.encode(certificate.getEncoded()));
-			out.write(END_CERT);
+			final Encoder encoder = Base64.getMimeEncoder(65, LF);
+
+			for (final Certificate certificate : certificates) {
+				out.write(BEGIN_CERT);
+				out.write(encoder.encode(certificate.getEncoded()));
+				out.write(END_CERT);
+			}
+
+		} catch (final IOException e) {
+			throw new UncheckedIOException("Error storing PEM certificate(s)", e);
+		} catch (final CertificateException e) {
+			throw new UncheckedSecurityException("Error storing PEM certificate(s)", e);
 		}
 	}
 
