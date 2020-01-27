@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>de.mklinger.maven</groupId>
 		<artifactId>maven-parent</artifactId>
-		<version>1.12</version>
+		<version>1.19</version>
 	</parent>
 
 	<groupId>de.mklinger.micro</groupId>
@@ -50,12 +50,10 @@
 		<dependency>
 			<groupId>de.mklinger.micro</groupId>
 			<artifactId>streamcopy</artifactId>
-			<version>1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>de.mklinger.micro</groupId>
 			<artifactId>annotations</artifactId>
-			<version>1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

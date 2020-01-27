@@ -21,16 +21,22 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Base64.Encoder;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,12 +45,15 @@ import de.mklinger.micro.annotations.VisibleForTesting;
 import de.mklinger.micro.streamcopy.StreamCopy;
 
 /**
- * Utility class for loading key stores and PEM certificates.
+ * Utility class for loading and storing key stores and PEM certificates.
  *
  * @author Marc Klinger - mklinger[at]mklinger[dot]de - klingerm
  */
 public class KeyStores {
 	private static final String CLASSPATH_PREFIX = "classpath:";
+	private static final byte[] BEGIN_CERT = "-----BEGIN CERTIFICATE-----\n".getBytes(StandardCharsets.ISO_8859_1);
+	private static final byte[] END_CERT = "\n-----END CERTIFICATE-----\n".getBytes(StandardCharsets.ISO_8859_1);
+	private static final byte[] LF = new byte[] { '\n' };
 
 	/** No instantiation */
 	private KeyStores() {}
@@ -236,6 +245,34 @@ public class KeyStores {
 	@VisibleForTesting
 	protected static boolean isWindowsPath(final String location) {
 		return location.startsWith("\\") || location.startsWith(".\\") || location.matches("[a-zA-Z]:[\\\\/].*");
+	}
+
+	/**
+	 * Store private key with certificate chain as PKCS12.
+	 *
+	 * @param certificateChain Certificate chain, most specific certificate first,
+	 *        ca certificate last. E.g.: server certificate, ca intermediate
+	 *        certificate, ca root certificate
+	 */
+	public static void storeAsPkcs12(final OutputStream out, @Nullable final String password, final PrivateKey privateKey, final Certificate... certificateChain) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+		final KeyStore store = KeyStore.getInstance("PKCS12");
+		store.load(null, null);
+
+		final char[] actualPassword = toPasswordCharArray(password);
+
+		store.setKeyEntry("key", privateKey, actualPassword, certificateChain);
+
+		store.store(out, actualPassword);
+	}
+
+	public static void storeAsPem(final OutputStream out, final Certificate... certificates) throws IOException, CertificateEncodingException {
+		final Encoder encoder = Base64.getMimeEncoder(65, LF);
+
+		for (final Certificate certificate : certificates) {
+			out.write(BEGIN_CERT);
+			out.write(encoder.encode(certificate.getEncoded()));
+			out.write(END_CERT);
+		}
 	}
 
 	/**

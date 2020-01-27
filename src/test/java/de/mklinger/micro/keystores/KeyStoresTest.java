@@ -18,14 +18,23 @@ package de.mklinger.micro.keystores;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.UnrecoverableEntryException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.util.ArrayList;
@@ -35,12 +44,19 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.AssumptionViolatedException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import de.mklinger.micro.streamcopy.StreamCopy;
 
 /**
  * @author Marc Klinger - mklinger[at]mklinger[dot]de
  */
 public class KeyStoresTest {
+	@Rule
+	public TemporaryFolder tmp = new TemporaryFolder();
+
 	@Test
 	public void testDefaultTypeWithPassword() throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException {
 		final String defaultType = KeyStore.getDefaultType();
@@ -165,5 +181,51 @@ public class KeyStoresTest {
 		assertThat(KeyStores.isWindowsPath("C:/bla"), is(true));
 		assertThat(KeyStores.isWindowsPath("C:/"), is(true));
 		assertThat(KeyStores.isWindowsPath("/hello/world"), is(false));
+	}
+
+	@Test
+	public void testStoreAsPem() throws KeyStoreException, IOException, CertificateEncodingException {
+		String expectedPem;
+		try (InputStream in = getClass().getClassLoader().getResourceAsStream("testkeystores/server-and-ca-cert.pem")) {
+			expectedPem = StreamCopy.toString(in, StandardCharsets.US_ASCII);
+		}
+
+		final KeyStore caKs = KeyStores.loadPemCertificates("classpath:testkeystores/server-and-ca-cert.pem");
+
+		final Certificate serverCert = caKs.getCertificate("cert0");
+		final Certificate caCert = caKs.getCertificate("cert1");
+
+		final File newPemFile = tmp.newFile();
+		try (FileOutputStream fout = new FileOutputStream(newPemFile)) {
+			KeyStores.storeAsPem(fout, serverCert, caCert);
+		}
+
+		String actualPem;
+		try (InputStream in = new FileInputStream(newPemFile)) {
+			actualPem = StreamCopy.toString(in, StandardCharsets.US_ASCII);
+		}
+
+		assertThat(actualPem.replaceAll("\\s", ""), is(expectedPem.replaceAll("\\s", "")));
+
+		assertThat("Formatting mismatch", actualPem, is(expectedPem));
+	}
+
+	@Test
+	public void testStoreAsPkcs12() throws KeyStoreException, IOException, UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
+		final KeyStore keyStore = KeyStores.load("classpath:testkeystores/server-with-password.jks", "testpwd", "jks");
+
+		final String alias = keyStore.aliases().nextElement();
+
+		final PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, new char[0]);
+		final Certificate[] certificateChain = keyStore.getCertificateChain(alias);
+
+		final File newPemFile = tmp.newFile();
+		try (FileOutputStream fout = new FileOutputStream(newPemFile)) {
+			KeyStores.storeAsPkcs12(fout, "anotherpwd", privateKey, certificateChain);
+		}
+
+		final KeyStore actualKeyStore = KeyStores.load(newPemFile.getAbsolutePath(), "anotherpwd", "jks");
+
+		assertServerEntries(actualKeyStore, "anotherpwd");
 	}
 }
